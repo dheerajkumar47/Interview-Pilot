@@ -1,0 +1,93 @@
+.sessionsWrapper {
+  animation: slideUp 0.5s var(--ease-out);
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+}
+
+.pageDesc {
+  color: var(--text-secondary);
+}
+
+.sessionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--space-6);
+}
+
+.sessionCard {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  transition: transform 0.2s;
+}
+
+.sessionCard:hover {
+  transform: translateY(-4px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-6);
+}
+
+.sessionCompany {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.sessionRole {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.cardStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+}
+
+.cardStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-weight: 700;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.cardDate {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}

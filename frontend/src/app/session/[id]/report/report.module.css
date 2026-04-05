@@ -1,0 +1,124 @@
+.reportPage {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.reportHero {
+  background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.08) 100%);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.heroContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.companyName {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 4px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.jobTitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.reportDate {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.gradeBlock {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.gradeBadge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  display: inline-block;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.scoreCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  gap: 8px;
+  text-align: center;
+}
+
+.scoreLabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.analysisRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gapsSection, .suggestionsSection {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.gapsSection h3, .suggestionsSection h3 {
+  font-size: 1rem;
+  margin: 0 0 12px;
+}
+
+.recommendation {
+  padding: 28px 32px;
+  border-radius: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 24px 0;
+}

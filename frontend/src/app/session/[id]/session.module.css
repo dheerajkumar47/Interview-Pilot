@@ -1,0 +1,351 @@
+.session {
+  animation: slideUp 0.5s var(--ease-out);
+}
+
+/* Header */
+.sessionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-10);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sessionTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+.sessionMeta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Progress Circle */
+.overallProgress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.progressCircle {
+  width: 80px;
+  height: 80px;
+  position: relative;
+}
+
+.progressCircle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progressBg {
+  fill: none;
+  stroke: var(--bg-elevated);
+  stroke-width: 6;
+}
+
+.progressFill {
+  fill: none;
+  stroke: var(--accent-500);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s var(--ease-out);
+}
+
+.progressValue {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.progressLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Pipeline */
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-6);
+}
+
+.stagesGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-10);
+}
+
+.stageWrapper {
+  position: relative;
+}
+
+.stageConnector {
+  position: absolute;
+  top: 42px;
+  left: -20px;
+  width: 20px;
+  height: 2px;
+  background: var(--bg-elevated);
+}
+
+.stageConnectorActive {
+  background: var(--accent-500);
+}
+
+.stageCard {
+  padding: var(--space-5);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 180px;
+}
+
+.stage-completed {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.stage-current {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.1) !important;
+  animation: glow 2s ease-in-out infinite;
+}
+
+.stage-locked {
+  opacity: 0.5;
+}
+
+.stageIcon {
+  font-size: 1.75rem;
+  margin-bottom: var(--space-3);
+}
+
+.stageLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.stageAgent {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.stageScore {
+  margin-top: auto;
+}
+
+.scoreValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--emerald-400);
+}
+
+.stageLocked {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: auto;
+}
+
+/* Active Stage */
+.activeCard {
+  padding: var(--space-8);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.activeDesc {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-5);
+}
+
+.activeExpect h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.activeExpect ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.activeExpect li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding-left: var(--space-5);
+  position: relative;
+}
+
+.activeExpect li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent-400);
+  font-weight: 700;
+}
+
+/* Analysis Detailed Section */
+.analysisContainer {
+  margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.analysisGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+.scoreCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.scoreCircle {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+
+.scoreCircle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.scoreLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.analysisSection {
+  margin-bottom: var(--space-4);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.gapsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.gapCard {
+  padding: var(--space-4);
+  border-left: 4px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.gap-high { border-left-color: var(--error); background: rgba(239, 68, 68, 0.05); }
+.gap-medium { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+.gap-low { border-left-color: var(--info); background: rgba(59, 130, 246, 0.05); }
+
+.gapCategory {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.gapDesc {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.suggestionsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.suggestionType {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--bg-primary);
+  color: var(--accent-400);
+}
+
+.suggestionDesc {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .stagesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .stageConnector {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .stagesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sessionHeader {
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .activeCard {
+    flex-direction: column;
+  }
+
+  .analysisGrid {
+    grid-template-columns: 1fr;
+  }
+}
