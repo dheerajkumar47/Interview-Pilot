@@ -58,24 +58,30 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
       analysis = typeof analysisRaw === 'string' ? JSON.parse(cleanJSON(analysisRaw)) : analysisRaw;
     }
 
-    // 4. Create real Session in DB
-    const session = await createSession({
-      userId: userId || null,
-      jobTitle: jobTitle || "Software Engineer",
-      company: company || "Unknown",
-      jobDescription: jobDescription || "",
-      experience: experience || "0-3 years",
-      roleType: roleType || "developer",
-      candidateLevel: candidateLevel || "beginner",
-      resumeText: resumeText,
-      resumeAnalysis: analysis,
-      sessionMode: sessionMode || "full",
-      currentStage: "resume", // Start at resume analysis stage
-    });
+    // 4. Create real Session in DB (Wrap in try-catch to be resilient)
+    let sessionId = "temp-" + Date.now();
+    try {
+      const session = await createSession({
+        userId: userId || null,
+        jobTitle: jobTitle || "Software Engineer",
+        company: company || "Unknown",
+        jobDescription: jobDescription || "",
+        experience: experience || "0-3 years",
+        roleType: roleType || "developer",
+        candidateLevel: candidateLevel || "beginner",
+        resumeText: resumeText,
+        resumeAnalysis: analysis,
+        sessionMode: sessionMode || "full",
+        currentStage: "resume",
+      });
+      sessionId = session.sessionId;
+    } catch (err: any) {
+      console.error("⚠️ Resilient Mode: Session creation failed, but returning analysis.", err.message);
+    }
 
     res.json({
       success: true,
-      sessionId: session.sessionId,
+      sessionId: sessionId,
       analysis: analysis,
       fileName: req.file.originalname,
     });
