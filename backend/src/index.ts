@@ -16,7 +16,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new SocketServer(server, {
   cors: {
-    origin: [process.env.FRONTEND_URL, "http://localhost:3000"].filter(Boolean) as string[],
+    origin: (origin, callback) => {
+      if (!origin || 
+          origin.includes("localhost") || 
+          origin.includes("vercel.app") || 
+          origin === process.env.FRONTEND_URL) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -27,7 +36,11 @@ const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3000"].filte
 
 app.use(cors({ 
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // 🌍 Allow localhost, Vercel deployments, and the configured production URL
+    if (!origin || 
+        origin.includes("localhost") || 
+        origin.includes("vercel.app") || 
+        origin === process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
