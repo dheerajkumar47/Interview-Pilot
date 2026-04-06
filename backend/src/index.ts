@@ -37,10 +37,11 @@ const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3000"].filte
 app.use(cors({ 
   origin: (origin, callback) => {
     // 🌍 Allow localhost, Vercel deployments, and the configured production URL
+    const cleanFrontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
     if (!origin || 
         origin.includes("localhost") || 
         origin.includes("vercel.app") || 
-        origin === process.env.FRONTEND_URL) {
+        origin === cleanFrontendUrl) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
