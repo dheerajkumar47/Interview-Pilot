@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -7,7 +7,7 @@ import styles from "./new-session.module.css";
 
 type Step = 1 | 2 | 3;
 
-export default function NewSessionPage() {
+function NewSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "full";
@@ -372,5 +372,13 @@ export default function NewSessionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function NewSessionPage() {
+  return (
+    <Suspense fallback={<div className="container p-8">Loading session setup...</div>}>
+      <NewSessionContent />
+    </Suspense>
   );
 }
