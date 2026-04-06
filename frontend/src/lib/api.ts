@@ -2,10 +2,11 @@
 // API Helper Functions
 // ═══════════════════════════════════════════
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const res = await fetch(`${API_URL}${endpoint}`, {
     headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
   });

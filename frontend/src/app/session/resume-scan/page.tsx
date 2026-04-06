@@ -3,6 +3,7 @@ import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./resume-scan.module.css";
 import Link from "next/link";
+import { API_BASE } from "@/lib/api";
 
 function ResumeScanContent() {
   const [jobDescription, setJobDescription] = useState("");
@@ -38,8 +39,7 @@ function ResumeScanContent() {
       formData.append("sessionMode", "resume_only");
       formData.append("jobTitle", "Target Role");
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_URL}/api/resume/upload`, {
+      const response = await fetch(`${API_BASE}/api/resume/upload`, {
         method: "POST",
         body: formData,
       });

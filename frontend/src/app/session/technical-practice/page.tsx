@@ -2,6 +2,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE } from "@/lib/api";
 
 function TechnicalPracticeContent() {
   const router = useRouter();
@@ -11,8 +12,7 @@ function TechnicalPracticeContent() {
   useEffect(() => {
     const createPracticeSession = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const response = await fetch(`${API_URL}/api/sessions`, {
+        const response = await fetch(`${API_BASE}/api/sessions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

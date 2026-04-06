@@ -3,6 +3,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { API_BASE } from "@/lib/api";
 import styles from "./new-session.module.css";
 
 type Step = 1 | 2 | 3;
@@ -70,7 +71,7 @@ function NewSessionContent() {
       formData.append("sessionMode", mode); // New mode parameter
       if (user?.id) formData.append("userId", user.id);
 
-      const response = await fetch("http://localhost:5000/api/resume/upload", {
+      const response = await fetch(`${API_BASE}/api/resume/upload`, {
         method: "POST",
         body: formData,
       });
