@@ -24,11 +24,14 @@ export const handleTechnicalStage = async (
     
     let isDiscovery = false;
     if (isTechnicalOnly) {
-      // Check if we already finished discovery
-      const hasStartedInterview = history.some((m: any) => 
-        m.role === "assistant" && m.content.toLowerCase().includes("let's start the technical interview")
+      // Logic for Onboarding
+      const hasFinishedOnboarding = history.some((m: any) => 
+        m.role === "assistant" && m.content.toLowerCase().includes("ready?")
       );
-      if (!hasStartedInterview && history.length < 12) {
+      
+      // If history has 1 or fewer assistant messages, definitely in discovery
+      const assistantMsgs = history.filter((m: any) => m.role === "assistant").length;
+      if (!hasFinishedOnboarding || assistantMsgs < 4) {
         isDiscovery = true;
       }
     }
