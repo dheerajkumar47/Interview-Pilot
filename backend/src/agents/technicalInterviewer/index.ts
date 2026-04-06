@@ -58,6 +58,18 @@ Guide the discussion through:
 
 IMPORTANT: Format: [SCORE: X] where X is 0-100 at the end of EVERY response based on their architectural depth and trade-off analysis. This is mandatory.`;
 
+const DISCOVERY_PROMPT = `You are an Interview Setup Assistant for a Technical Practice session. Your goal is to gather information from the candidate to tailor their practice session.
+
+You need to ask EXACTLY ONE question at a time to gather:
+1. The specific Job Role they are targeting (e.g. Frontend, Backend, Fullstack, AI Engineer).
+2. The Tech Stack or Core Skills they want to be tested on (e.g. React, Node.js, Python, System Design).
+3. Their current experience level (e.g. Fresher, 2 years, Senior).
+4. If they have a specific Job Description or company they want to simulate.
+
+If they have already provided some info, acknowledge it and ask for the missing pieces. Do NOT start the interview yet. 
+Once you have all info, say: "Perfect! I've tailored your session. Let's start the technical interview now. Ready?" 
+Do NOT include a score tag in discovery phase.`;
+
 export async function conductTechnicalInterview(
   messages: AIMessage[],
   context: {
@@ -96,5 +108,12 @@ export async function conductSystemDesign(
     `\n\nJOB DESCRIPTION:\n${context.jobDescription.substring(0, 1500)}`;
 
   const response = await callAI(systemPrompt, messages, { temperature: 0.7, maxTokens: 2048 });
+  return response.content;
+}
+
+export async function conductDiscovery(
+  messages: AIMessage[]
+): Promise<string> {
+  const response = await callAI(DISCOVERY_PROMPT, messages, { temperature: 0.7, maxTokens: 512 });
   return response.content;
 }

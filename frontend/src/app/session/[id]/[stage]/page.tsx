@@ -28,7 +28,7 @@ const STAGE_CONFIG: Record<string, { maxQuestions: number; timePerQuestion: numb
 const GREETINGS: Record<string, string> = {
   resume: "Hi! I'm the Resume Analyst. I've analyzed your resume against the job description. Let me walk you through the results...",
   initial: "Hello! Before we dive into the interview, let me ask you a few general questions to understand your background. Ready?",
-  technical: "Welcome to the Technical Interview! I'll ask coding and problem-solving questions tailored to the job. Let's start with a warm-up. Are you ready?",
+  technical: "Welcome to the Technical Practice! To get started, I'll need a few details to tailor the session for you. What specific job role are you targeting?",
   knowledge: "Welcome to the Knowledge Assessment! I'll test your understanding of key concepts. Let's begin!",
   hr: "Hi there! I'm your HR Interview Coach. We'll practice behavioral questions using the STAR method. How do you describe yourself for this role?",
 };

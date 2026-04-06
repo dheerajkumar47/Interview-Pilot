@@ -98,12 +98,12 @@ export default function DashboardPage() {
             <h3 className={styles.quickTitle}>Full Interview Simulation</h3>
             <p className={styles.quickDesc}>Complete pipeline — Resume → Technical → Knowledge → HR</p>
           </Link>
-          <Link href="/session/new?mode=resume" className={`${styles.quickCard} glass-card`}>
+          <Link href="/session/resume-scan" className={`${styles.quickCard} glass-card`}>
             <div className={styles.quickIcon}>📄</div>
             <h3 className={styles.quickTitle}>Resume Review Only</h3>
             <p className={styles.quickDesc}>Get your resume scored and optimized for a specific JD</p>
           </Link>
-          <Link href="/session/new?mode=technical" className={`${styles.quickCard} glass-card`}>
+          <Link href="/session/technical-practice" className={`${styles.quickCard} glass-card`}>
             <div className={styles.quickIcon}>💻</div>
             <h3 className={styles.quickTitle}>Technical Practice</h3>
             <p className={styles.quickDesc}>Coding challenges and system design questions</p>

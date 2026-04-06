@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { conductTechnicalInterview } from "../../agents/technicalInterviewer";
+import { conductTechnicalInterview, conductDiscovery } from "../../agents/technicalInterviewer";
 import { InterviewState } from "../../agents/state";
 import { updateSession } from "../../services/session.service";
 
@@ -18,18 +18,38 @@ export const handleTechnicalStage = async (
     // Add user message
     sessionData.conversationHistory["technical"].push({ role: "user", content: data.message });
 
-    // Call Agent 2
-    const response = await conductTechnicalInterview(
-      sessionData.conversationHistory["technical"] as any,
-      {
-        jobTitle: sessionData.jobTitle || "Software Engineer",
-        company: sessionData.company || "Tech Corp",
-        experience: sessionData.experience || "0-3 years",
-        jobDescription: sessionData.jobDescription || "",
-        skills: (sessionData.resumeAnalysis as any)?.keywordMatches || [],
-        candidateLevel: sessionData.candidateLevel || "beginner"
+    // 🔍 Discovery Phase Logic for 'technical_only' sessions
+    const history = sessionData.conversationHistory["technical"] as any;
+    const isTechnicalOnly = sessionData.sessionMode === "technical_only";
+    
+    let isDiscovery = false;
+    if (isTechnicalOnly) {
+      // Check if we already finished discovery
+      const hasStartedInterview = history.some((m: any) => 
+        m.role === "assistant" && m.content.toLowerCase().includes("let's start the technical interview")
+      );
+      if (!hasStartedInterview && history.length < 12) {
+        isDiscovery = true;
       }
-    );
+    }
+
+    let response: string;
+    if (isDiscovery) {
+      response = await conductDiscovery(history);
+    } else {
+      // Normal Interview
+      response = await conductTechnicalInterview(
+        history,
+        {
+          jobTitle: sessionData.jobTitle || "Software Engineer",
+          company: sessionData.company || "Tech Corp",
+          experience: sessionData.experience || "0-3 years",
+          jobDescription: sessionData.jobDescription || "",
+          skills: (sessionData.resumeAnalysis as any)?.keywordMatches || [],
+          candidateLevel: sessionData.candidateLevel || "beginner"
+        }
+      );
+    }
 
     // Add assistant response
     sessionData.conversationHistory["technical"].push({ role: "assistant", content: response });
