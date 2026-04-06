@@ -1,6 +1,7 @@
 import { Socket } from "socket.io";
 import { conductKnowledgeAssessment } from "../../agents/knowledgeAssessor";
 import { InterviewState } from "../../agents/state";
+import { updateSession } from "../../services/session.service";
 
 export const handleKnowledgeStage = async (
   socket: Socket,
@@ -32,11 +33,30 @@ export const handleKnowledgeStage = async (
     // Add assistant response
     sessionData.conversationHistory[data.stage].push({ role: "assistant", content: response });
 
+    // Extract score if present in response (e.g., [SCORE: 85] or **Score:** 85)
+    const scoreMatch = response.match(/\[SCORE:\s*(\d+)\]/i) || response.match(/\*\*Score:\*\*\s*(\d+)/i) || response.match(/Score:\s*(\d+)/i);
+    if (scoreMatch) {
+      const score = Math.min(100, Math.max(0, parseInt(scoreMatch[1])));
+      const stageKey = data.stage === 'initial' ? 'initial' : 'knowledge';
+      sessionData.scores[stageKey] = score;
+
+      // 🚀 Save immediately
+      await updateSession(data.sessionId, { scores: sessionData.scores });
+      socket.emit("score:update", { sessionId: data.sessionId, stage: stageKey, score });
+    }
+
+    // Clean up response: remove score tags and redundant formatting
+    const cleanedResponse = response
+      .replace(/\[SCORE:\s*\d+\]/gi, "")
+      .replace(/\*\*Score:\*\*\s*\d*/gi, "")
+      .replace(/^#\s*\*/gm, "") // Remove weird "# *" prefix
+      .trim();
+
     // Emit back to frontend
     socket.emit("interview:response", {
       sessionId: data.sessionId,
       stage: data.stage,
-      message: response,
+      message: cleanedResponse,
       timestamp: new Date().toISOString(),
     });
 

@@ -35,7 +35,7 @@ IMPORTANT:
 - Adapt difficulty based on performance
 - Provide specific feedback on each answer
 - Use real interview language and tone
-- CRITICAL: At the end of EVERY response, include the candidate's performance score for this stage so far in this exact format: [SCORE: X] where X is 0-100. For example: [SCORE: 85]. This tag is for internal analytics and MUST NOT be omitted.`;
+- CRITICAL - STRICT SCORING: You must score the candidate strictly based on their accuracy and depth of answers across ALL questions so far. If they have answered multiple questions incorrectly or poorly, their score MUST be low (e.g., below 40%). Do NOT be overly generous. Format: [SCORE: X] where X is 0-100 at the end of EVERY response. This is mandatory.`;
 
 const SYSTEM_DESIGN_PROMPT = `You are a senior System Design Interviewer. You evaluate architectural thinking.
 
@@ -54,7 +54,9 @@ Guide the discussion through:
 1. Requirements clarification
 2. High-level design
 3. Detailed component design
-4. Scaling & trade-offs`;
+4. Scaling & trade-offs
+
+IMPORTANT: Format: [SCORE: X] where X is 0-100 at the end of EVERY response based on their architectural depth and trade-off analysis. This is mandatory.`;
 
 export async function conductTechnicalInterview(
   messages: AIMessage[],
@@ -67,15 +69,18 @@ export async function conductTechnicalInterview(
     candidateLevel: string;
   }
 ): Promise<string> {
+  const varietyInstruction = `\n\nVARIETY INSTRUCTION:\n- Do NOT repeat questions from the history.\n- If the history is short, start with a fresh, unique warm-up.\n- Generate a random unique scenario for this interview to keep it fresh.`;
+
   const systemPrompt = CODING_CHALLENGE_PROMPT
     .replace("{jobTitle}", context.jobTitle)
     .replace("{company}", context.company)
     .replace("{experience}", context.experience)
     .replace("{skills}", context.skills.join(", "))
     .replace("{candidateLevel}", context.candidateLevel) +
+    varietyInstruction +
     `\n\nJOB DESCRIPTION:\n${context.jobDescription.substring(0, 1500)}`;
 
-  const response = await callAI(systemPrompt, messages, { temperature: 0.7, maxTokens: 2048 });
+  const response = await callAI(systemPrompt, messages, { temperature: 0.8, maxTokens: 2048 });
   return response.content;
 }
 

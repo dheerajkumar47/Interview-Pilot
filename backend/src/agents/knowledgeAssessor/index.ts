@@ -35,7 +35,8 @@ C) [option]
 D) [option]
 
 Ask ONE question at a time. Wait for the answer before proceeding.
-Provide clear explanations for correct answers.`;
+Provide clear explanations for correct answers.
+CRITICAL: At the end of EVERY response, include the candidate's performance score for this stage so far in this exact format: [SCORE: X] where X is 0-100. For example: [SCORE: 85]. This tag is for internal analytics and MUST NOT be omitted.`;
 
 const DOMAIN_EXPERT_PROMPT = `You are a Domain Expert interviewer. You conduct deep-dive technical discussions.
 
@@ -47,7 +48,8 @@ YOUR BEHAVIOR:
 5. Discuss architecture decisions: "Why did you choose X over Y?"
 6. Evaluate: depth of knowledge, practical experience, problem-solving approach
 
-Be conversational but thorough. Challenge vague answers with follow-ups.`;
+Be conversational but thorough. Challenge vague answers with follow-ups.
+CRITICAL: At the end of EVERY response, include the candidate's performance score for this stage so far in this exact format: [SCORE: X] where X is 0-100. For example: [SCORE: 85]. This tag is for internal analytics and MUST NOT be omitted.`;
 
 export async function conductKnowledgeAssessment(
   messages: AIMessage[],

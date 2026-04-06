@@ -35,8 +35,10 @@ export function setupSocketHandlers(io: Server) {
 
     // Advance to next stage + calculate stage score
     socket.on("session:advance", async (data: { sessionId: string; currentStage: string }) => {
-      const session = sessions[data.sessionId];
+      // 🔄 Sync with latest DB state to prevent stale score overwrites
+      const session = await getSession(data.sessionId);
       if (!session) return;
+      sessions[data.sessionId] = session; // Update cache
 
       const STAGES = ["resume", "initial", "technical", "knowledge", "hr", "report"];
       let nextStage: string = "report";

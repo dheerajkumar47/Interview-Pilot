@@ -34,38 +34,42 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           return;
         }
 
-        setLoading(true);
-        if (!supabase) {
-          setError("Supabase not configured");
-          setLoading(false);
-          return;
-        }
-        
-        try {
-          const { data, error: sbError } = await supabase
-            .from('sessions')
-            .select('*')
-            .eq('id', resolvedParams.id);
-          
-          if (sbError) throw sbError;
-          
-          if (!data || data.length === 0) {
-            setError("Session not found or you don't have access to it.");
+        const fetchWithRetry = async (retries = 3, delay = 1000) => {
+          try {
+            if (!supabase) return;
+            
+            const { data, error: sbError } = await supabase
+              .from('sessions')
+              .select('*')
+              .eq('id', resolvedParams.id);
+            
+            if (sbError) throw sbError;
+            
+            if (!data || data.length === 0) {
+              if (retries > 0) {
+                console.log(`⏱️ Session not yet visible, retrying in ${delay}ms... (${retries} left)`);
+                await new Promise(res => setTimeout(res, delay));
+                return fetchWithRetry(retries - 1, delay);
+              }
+              setError("Session not found or you don't have access to it.");
+              return;
+            }
+            
+            setSessionData(data[0]);
+          } catch (err: any) {
+            console.error("Fetch session error:", err);
+            setError(err.message || "Failed to load session");
+          } finally {
             setLoading(false);
-            return;
           }
-          
-          setSessionData(data[0]);
-        } catch (err: any) {
-          console.error("Fetch session error:", err);
-          setError(err.message || "Failed to load session");
-        } finally {
-          setLoading(false);
-        }
+        };
+
+        setLoading(true);
+        fetchWithRetry();
       };
       fetchSession();
     }
-  }, [resolvedParams]);
+  }, [resolvedParams, supabase]);
 
   if (loading) {
     return <div className={styles.session} style={{ display: 'flex', justifyContent: 'center', marginTop: '10vh' }}><span className="spinner"></span><p style={{ marginLeft: 12 }}>Loading Session...</p></div>;
@@ -115,7 +119,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       id,
       ...stageMetadata[id],
       status,
-      score: stageScore > 0 ? stageScore : undefined
+      score: (dbScores[id] !== undefined && dbScores[id] !== null) ? dbScores[id] : (id === "resume" ? matchScore : undefined)
     };
   });
 
@@ -134,19 +138,27 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           </p>
         </div>
         <div className={styles.overallProgress}>
-          <div className={styles.progressCircle}>
-            <svg viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" className={styles.progressBg} />
-              <circle
-                cx="50" cy="50" r="42"
-                className={styles.progressFill}
-                strokeDasharray={264}
-                strokeDashoffset={264 - (264 * Math.min(parseInt(sessionData.overall_score || 0), 100)) / 100}
-              />
-            </svg>
-            <div className={styles.progressValue}>{sessionData.overall_score || 0}%</div>
-          </div>
-          <span className={styles.progressLabel}>Overall Progress</span>
+          {sessionData.status === 'report' || sessionData.status === 'completed' ? (
+            <Link href={`/session/${sId}/report`} className={`${styles.reportBigBtn} btn btn-primary`}>
+              📊 View Final Report
+            </Link>
+          ) : (
+            <>
+              <div className={styles.progressCircle}>
+                <svg viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" className={styles.progressBg} />
+                  <circle
+                    cx="50" cy="50" r="42"
+                    className={styles.progressFill}
+                    strokeDasharray={264}
+                    strokeDashoffset={264 - (264 * Math.min(parseInt(sessionData.overall_score || 0), 100)) / 100}
+                  />
+                </svg>
+                <div className={styles.progressValue}>{sessionData.overall_score || 0}%</div>
+              </div>
+              <span className={styles.progressLabel}>Overall Progress</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -181,8 +193,8 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                 )}
                 
                 {stage.status === "current" && stage.id !== "report" && (
-                  <Link href={`/session/${sId}/${stage.id}`} className="btn btn-primary btn-sm" style={{ marginTop: 12 }}>
-                    Continue →
+                  <Link href={`/session/${sId}/${stage.id}`} className="btn btn-primary btn-sm" style={{ marginTop: 'auto', width: '100%', fontSize: '0.75rem' }}>
+                    Enter {stage.label} Room
                   </Link>
                 )}
                 {stage.id === "report" && stage.status === "current" && (
@@ -191,8 +203,8 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                   </Link>
                 )}
                 {stage.status === "completed" && stage.id !== "report" && (
-                  <Link href={`/session/${sId}/${stage.id}`} className="btn btn-ghost btn-sm" style={{ marginTop: 12 }}>
-                    Review
+                  <Link href={`/session/${sId}/${stage.id}`} className="btn btn-ghost btn-sm" style={{ marginTop: 'auto', width: '100%', fontSize: '0.75rem' }}>
+                    Review Session
                   </Link>
                 )}
                 {stage.status === "locked" && (

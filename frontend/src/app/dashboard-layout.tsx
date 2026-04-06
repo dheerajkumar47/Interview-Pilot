@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import styles from "./dashboard-layout.module.css";
 
 const navItems = [
@@ -77,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
           </div>
           <div className={styles.topBarActions}>
+            <ThemeToggle />
             <div className={styles.userAvatar}>{getInitials(user?.fullName || "User")}</div>
           </div>
         </header>

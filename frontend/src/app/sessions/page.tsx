@@ -126,8 +126,8 @@ export default function SessionsPage() {
                   </div>
                   <div className={styles.cardStat}>
                     <span className={styles.statLabel}>Interview Score</span>
-                    <span className={styles.statValue} style={{ color: overallScore > 0 ? '#6366f1' : undefined }}>
-                      {overallScore > 0 ? `${overallScore}%` : 'Pending'}
+                    <span className={styles.statValue} style={{ color: isDone || overallScore > 0 ? '#6366f1' : undefined }}>
+                      {isDone || overallScore > 0 ? `${overallScore}%` : 'Pending'}
                     </span>
                   </div>
                 </div>
@@ -137,8 +137,8 @@ export default function SessionsPage() {
                     {new Date(session.created_at).toLocaleDateString()}
                   </span>
                   {isDone ? (
-                    <Link href={`/session/${session.id}/report`} className="btn btn-primary btn-sm">
-                      📊 View Report
+                    <Link href={`/session/${session.id}`} className="btn btn-primary btn-sm">
+                      🔍 View Session
                     </Link>
                   ) : (
                     <Link href={`/session/${session.id}`} className="btn btn-secondary btn-sm">

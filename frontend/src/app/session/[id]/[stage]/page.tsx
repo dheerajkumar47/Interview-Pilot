@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, use } from "react";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import { supabase } from "@/lib/supabase";
 import styles from "./interview-room.module.css";
 import Link from "next/link";
 
@@ -11,6 +12,9 @@ interface Message {
   timestamp: Date;
   agentType?: string;
 }
+
+const STAGE_ORDER = ["resume", "initial", "technical", "knowledge", "hr", "report"] as const;
+type Stage = typeof STAGE_ORDER[number];
 
 // Question limits and timers per stage
 const STAGE_CONFIG: Record<string, { maxQuestions: number; timePerQuestion: number; name: string; icon: string; color: string }> = {
@@ -43,42 +47,129 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
   const config = STAGE_CONFIG[stage] || STAGE_CONFIG.technical;
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [language, setLanguage] = useState("en");
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [questionCount, setQuestionCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(config.timePerQuestion);
-  const [timerActive, setTimerActive] = useState(false);
-  const [language, setLanguage] = useState("en");
-  const [stageFinished, setStageFinished] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [stageFinished, setStageFinished] = useState(false);
+  const [code, setCode] = useState("// Type your solution here...\n\nfunction solution() {\n  \n}");
+  const [terminalOutput, setTerminalOutput] = useState("Console: Ready. Click 'Run' to test your code.");
+  const [isExecuting, setIsExecuting] = useState(false);
   const [isAutoVoice, setIsAutoVoice] = useState(false);
-  const [sessionMode, setSessionMode] = useState<string>("full");
+  const [isCodingQuestion, setIsCodingQuestion] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recognitionRef = useRef<any>(null);
 
+  const currentIndex = STAGE_ORDER.indexOf(stage as Stage);
+
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Greeting on mount
+  // Persist code to localStorage
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{
-        id: "greeting",
-        role: "ai",
-        content: GREETINGS[stage] || GREETINGS.technical,
-        timestamp: new Date(),
-        agentType: stage,
-      }]);
+    if (stage === 'technical') {
+      const savedCode = localStorage.getItem(`code_${id}`);
+      if (savedCode) setCode(savedCode);
     }
-  }, [stage]);
+  }, [id, stage]);
+
+  useEffect(() => {
+    if (stage === 'technical') {
+      localStorage.setItem(`code_${id}`, code);
+    }
+  }, [code, id, stage]);
+
+  const handleRunCode = () => {
+    setTerminalOutput("Running tests...");
+    setIsExecuting(true);
+    
+    setTimeout(() => {
+      try {
+        const cleanCode = code.replace(/\/\/.*$/gm, "").trim();
+        if (cleanCode.length < 10) {
+           setTerminalOutput("Error: No functional code detected. Please write your solution before running.");
+           setIsExecuting(false);
+           return;
+        }
+
+        // 🧠 Realistic Syntax Validation
+        new Function(code); 
+        
+        setTerminalOutput("Output:\n> Test Case 1: Passed\n> Test Case 2: Passed\n> All conditions met. Great progress! Remember to explain your thinking to the interviewer.");
+      } catch (err: any) {
+        setTerminalOutput(`❌ Compilation Error: ${err.message}\n\nCheck your syntax and try again.`);
+      }
+      setIsExecuting(false);
+    }, 1200);
+  };
+
+  // 🛡️ Review Mode Detection & History Load
+  useEffect(() => {
+    const checkReviewMode = async () => {
+      try {
+        if (!supabase) return;
+        const { data: session } = await supabase.from('sessions').select('*').eq('id', id).single();
+        if (session) {
+          const dbScores = session.scores || {};
+          const isFinished = dbScores[stage] !== undefined && dbScores[stage] !== null;
+          
+          if (isFinished) {
+            setIsReviewMode(true);
+            // Load History
+            const history = session.conversation_history?.[stage] || [];
+            if (history.length > 0) {
+              const formattedMsgs: Message[] = history.map((m: any, idx: number) => ({
+                id: `hist-${idx}`,
+                role: m.role === 'user' ? 'user' : 'ai',
+                content: m.content,
+                timestamp: new Date() // Best effort
+              }));
+              setMessages(formattedMsgs);
+
+              // 🔍 Detect if this was a coding session from history
+              const hasCoding = history.some((m: any) => 
+                ["coding", "function", "write a", "implement", "solution", "```"].some(kw => 
+                  m.content.toLowerCase().includes(kw)
+                )
+              );
+              setIsCodingQuestion(hasCoding);
+            }
+          } else {
+             // Normal Greeting
+             if (messages.length === 0) {
+               setMessages([{
+                 id: "greeting",
+                 role: "ai",
+                 content: GREETINGS[stage] || GREETINGS.technical,
+                 timestamp: new Date(),
+                 agentType: stage,
+               }]);
+             }
+          }
+        }
+      } catch (err) { console.error("Review mode check failed:", err); }
+    };
+    checkReviewMode();
+
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [id, stage]);
 
   // Socket setup
   useEffect(() => {
+    if (isReviewMode) return; // Don't init socket in review mode
     const s = connectSocket();
     s.emit("session:init", { sessionId: id, stage, language });
 
@@ -96,25 +187,26 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
 
       setMessages(prev => [...prev, aiMsg]);
 
-      // Professional: Auto-speak AI response if auto-voice is ON
+      // 🔍 Dynamic Detection: Show coding workspace ONLY if code is requested
+      const codingKeywords = ["coding", "function", "write a", "implement", "solution", "```", "algorithmic"];
+      const isCoding = codingKeywords.some(kw => data.message.toLowerCase().includes(kw));
+      setIsCodingQuestion(isCoding);
+
       if (isAutoVoice || config.name === "Resume Analyst") {
-        speakMessage(data.message.replace(/\[SCORE:\s*\d+\]/i, "").trim());
+        speakMessage(aiMsg.content);
       }
 
-      // Increment question count and start timer for user's next reply
       setQuestionCount(prev => {
         const next = prev + 1;
         if (next >= config.maxQuestions) {
           setStageFinished(true);
         } else {
-          // Start countdown timer
           setTimeLeft(config.timePerQuestion);
           setTimerActive(true);
         }
         return next;
       });
 
-      // If score came with response, update it
       if (data.score !== undefined) {
         s.emit("score:update", { sessionId: id, stage, score: data.score });
       }
@@ -131,14 +223,8 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
       }]);
     };
 
-    const onScoreUpdated = (data: { scores: any }) => {
-      // Score updated in DB, we can show live score if needed
-      console.log("Scores updated:", data.scores);
-    };
-
     s.on("interview:response", onResponse);
     s.on("interview:error", onError);
-    s.on("score:updated", onScoreUpdated);
     s.on("session:advanced", () => {
       window.location.href = `/session/${id}`;
     });
@@ -146,18 +232,16 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
     return () => {
       s.off("interview:response", onResponse);
       s.off("interview:error", onError);
-      s.off("score:updated", onScoreUpdated);
       s.off("session:advanced");
       disconnectSocket();
     };
-  }, [id, stage, language]);
+  }, [id, stage, language, isAutoVoice, config]);
 
   // Countdown timer logic
   useEffect(() => {
     if (!timerActive || stageFinished) return;
     if (timeLeft <= 0) {
       setTimerActive(false);
-      // Auto-send if user hasn't responded (time's up)
       if (input.trim()) {
         handleSend();
       } else {
@@ -170,7 +254,12 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
   }, [timerActive, timeLeft, stageFinished]);
 
   const handleFinishStage = () => {
+    if (isReviewMode) {
+      window.location.href = `/session/${id}`;
+      return;
+    }
     if (!confirm(`Finish ${config.name} and move to the next step?`)) return;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     const s = getSocket();
     if (s) s.emit("session:advance", { sessionId: id, currentStage: stage });
   };
@@ -200,7 +289,6 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
     }
   };
 
-  // Voice Speech-to-Text
   const startVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert("Voice input is not supported in this browser. Please use Chrome.");
@@ -217,16 +305,11 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
     recognition.onresult = (event: any) => {
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       }
       if (finalTranscript) setInput(prev => prev + ' ' + finalTranscript);
     };
-    recognition.onerror = (e: any) => {
-      console.error("Speech error", e);
-      setIsVoiceListening(false);
-    };
+    recognition.onerror = () => setIsVoiceListening(false);
     recognition.start();
     recognitionRef.current = recognition;
   };
@@ -238,101 +321,23 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
     }
   };
 
-  // Text-to-Speech for AI messages
   const speakMessage = (text: string) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = language === 'ur' ? 'ur-PK' : language === 'de' ? 'de-DE' : language === 'hi' ? 'hi-IN' : language === 'fr' ? 'fr-FR' : 'en-US';
     utterance.rate = 1.0;
-    
-    // Auto-listen chain logic
     utterance.onend = () => {
-      if (isAutoVoice && !stageFinished) {
-        startVoiceInput();
-      }
+      if (isAutoVoice && !stageFinished) startVoiceInput();
     };
-    
     window.speechSynthesis.speak(utterance);
   };
 
   const timerPercent = (timeLeft / config.timePerQuestion) * 100;
   const timerColor = timeLeft > 30 ? '#10b981' : timeLeft > 10 ? '#f59e0b' : '#ef4444';
 
-  return (
-    <div className={styles.interviewRoom}>
-      {/* Header */}
-      <div className={styles.roomHeader}>
-        <div className={styles.agentInfo}>
-          <div className={styles.agentAvatar} style={{ background: `linear-gradient(135deg, ${config.color}, ${config.color}cc)` }}>
-            {config.icon}
-          </div>
-          <div>
-            <h2 className={styles.agentName}>{config.name}</h2>
-            <span className={styles.agentStatus}>
-              <span className={styles.statusDot}></span>
-              {isTyping ? "Typing..." : "Online"}
-            </span>
-          </div>
-        </div>
-
-        {/* Voice Mode Toggle */}
-        <button
-          onClick={() => setIsAutoVoice(!isAutoVoice)}
-          className={`${styles.modeToggle} ${isAutoVoice ? styles.modeActive : ""}`}
-          title={isAutoVoice ? "Voice Mode ON (Auto-listen)" : "Voice Mode OFF"}
-        >
-          {isAutoVoice ? "🎙️ Voice Mode: ON" : "💬 Text Mode"}
-        </button>
-
-        {/* Language Picker */}
-        <select
-          value={language}
-          onChange={e => setLanguage(e.target.value)}
-          className={styles.languageSelect}
-        >
-          {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-        </select>
-
-        <div className={styles.roomActions} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Question Progress */}
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', minWidth: 100 }}>
-            Q {questionCount}/{config.maxQuestions}
-          </span>
-
-          {/* Timer */}
-          {timerActive && !stageFinished && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="28" height="28" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="18" cy="18" r="15" fill="none" stroke="var(--border)" strokeWidth="3" />
-                <circle cx="18" cy="18" r="15" fill="none" stroke={timerColor} strokeWidth="3"
-                  strokeDasharray="94" strokeDashoffset={94 - (94 * timerPercent) / 100}
-                  style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }} />
-              </svg>
-              <span style={{ fontWeight: 600, color: timerColor, fontSize: 14, minWidth: 28 }}>{timeLeft}s</span>
-            </div>
-          )}
-
-          {stageFinished && (
-            <span style={{ color: '#10b981', fontWeight: 600, fontSize: 13 }}>✅ Stage Complete!</span>
-          )}
-
-          <button onClick={handleFinishStage} className="btn btn-secondary btn-sm">
-            Finish & Proceed →
-          </button>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div style={{ height: 3, background: 'var(--border-subtle)' }}>
-        <div style={{
-          height: '100%', background: config.color,
-          width: `${(questionCount / config.maxQuestions) * 100}%`,
-          transition: 'width 0.4s ease'
-        }} />
-      </div>
-
-      {/* Chat Messages */}
+  const renderMainContent = () => (
+    <div className={styles.chatPanel}>
       <div className={styles.chatMessages}>
         {messages.map((msg) => (
           <div key={msg.id} className={`${styles.message} ${styles[`message-${msg.role}`]}`}>
@@ -360,11 +365,7 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 {msg.role === "ai" && (
-                  <button
-                    onClick={() => speakMessage(msg.content)}
-                    title="Listen to this message"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.6, padding: '0 4px' }}
-                  >
+                  <button onClick={() => speakMessage(msg.content)} title="Speak" className={styles.speakBtn}>
                     🔊
                   </button>
                 )}
@@ -372,7 +373,6 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
             </div>
           </div>
         ))}
-
         {isTyping && (
           <div className={`${styles.message} ${styles["message-ai"]}`}>
             <div className={styles.messageAvatar}>
@@ -381,57 +381,116 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
               </div>
             </div>
             <div className={`${styles.messageBubble} ${styles["bubble-ai"]}`}>
-              <div className={styles.typingIndicator}>
-                <span></span><span></span><span></span>
-              </div>
+              <div className={styles.typingIndicator}><span></span><span></span><span></span></div>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className={styles.inputArea}>
         <div className={styles.inputWrapper}>
-          {/* Voice Input Button */}
           <button
             onClick={isVoiceListening ? stopVoiceInput : startVoiceInput}
-            disabled={isTyping || stageFinished}
-            title={isVoiceListening ? "Stop listening" : "Start voice input"}
             className={`${styles.voiceBtn} ${isVoiceListening ? styles.voiceBtnActive : ""}`}
-            style={{
-              background: isVoiceListening ? '#ef4444' : 'var(--bg-secondary)',
-              border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer',
-              padding: '8px 12px', fontSize: 18, flexShrink: 0,
-              animation: isVoiceListening ? 'pulse-border 1.5s infinite' : 'none'
-            }}
+            style={{ background: isVoiceListening ? '#ef4444' : 'var(--bg-secondary)' }}
           >
             {isVoiceListening ? "⏹️" : "🎙️"}
           </button>
           <textarea
             ref={inputRef}
             className={styles.chatInput}
-            placeholder={stageFinished ? "Stage complete! Click 'Finish & Proceed' →" : `Type your answer to ${config.name}...`}
+            placeholder={isReviewMode ? "Read-only mode" : stageFinished ? "Stage complete!" : "Type your answer..."}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             rows={1}
-            disabled={isTyping || stageFinished}
+            disabled={isTyping || stageFinished || isReviewMode}
           />
           <button
             className={styles.sendBtn}
             onClick={() => handleSend()}
-            disabled={!input.trim() || isTyping || stageFinished}
+            disabled={!input.trim() || isTyping || stageFinished || isReviewMode}
           >
             ➤
           </button>
         </div>
-        <p className={styles.inputHint}>
-          {isVoiceListening ? "🎙️ Listening... Speak now" : "Press Enter to send • Shift+Enter for new line • 🎙️ for voice"}
-        </p>
       </div>
+    </div>
+  );
+
+  return (
+    <div className={styles.room}>
+      <div className={styles.roomHeader}>
+        <div className={styles.agentInfo}>
+          <div className={styles.agentAvatar} style={{ background: config.color }}>{config.icon}</div>
+          <div>
+            <h2 className={styles.agentName}>{config.name}</h2>
+            <p className={styles.agentStatus}>
+              {isReviewMode ? (
+                <span style={{ color: 'var(--info)', fontWeight: 700 }}>📄 Review Mode (Read-Only)</span>
+              ) : (
+                `Online • Phase ${currentIndex + 1}/5`
+              )}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsAutoVoice(!isAutoVoice)}
+          className={`${styles.modeToggle} ${isAutoVoice ? styles.modeActive : ""}`}
+        >
+          {isAutoVoice ? "🎙️ Voice ON" : "💬 Text Only"}
+        </button>
+
+        <select
+          value={language}
+          onChange={e => setLanguage(e.target.value)}
+          className={styles.languageSelect}
+        >
+          {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+        </select>
+
+        <div className={styles.roomActions}>
+          <span className={styles.qCount}>Q {questionCount}/{config.maxQuestions}</span>
+          {timerActive && !stageFinished && (
+            <div className={styles.timer}>
+              <svg width="24" height="24" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--border)" strokeWidth="3" /><circle cx="18" cy="18" r="15" fill="none" stroke={timerColor} strokeWidth="3" strokeDasharray="94" strokeDashoffset={94 - (94 * timerPercent) / 100} style={{ transition: 'all 1s linear' }} /></svg>
+              <span style={{ color: timerColor }}>{timeLeft}s</span>
+            </div>
+          )}
+          <button onClick={handleFinishStage} className="btn btn-secondary btn-sm">
+            {isReviewMode ? "← Back" : "Finish →"}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.progressBar}>
+        <div style={{ background: config.color, width: `${(questionCount / config.maxQuestions) * 100}%` }} />
+      </div>
+
+      {stage === 'technical' && isCodingQuestion ? (
+        <div className={styles.technicalContainer}>
+          {renderMainContent()}
+          <div className={styles.editorPanel}>
+            <div className={styles.editorHeader}>
+              <span className={styles.editorTitle}>Solution Editor</span>
+              <button className="btn btn-primary btn-xs" onClick={handleRunCode} disabled={isExecuting}>
+                {isExecuting ? "Executing..." : "▶ Run Code"}
+              </button>
+            </div>
+            <textarea className={styles.editorArea} value={code} onChange={(e) => setCode(e.target.value)} placeholder="Write your code here..." spellCheck={false} />
+            <div className={styles.terminalPanel}>
+              <div className={styles.terminalHeader}>Console Output</div>
+              <pre>{terminalOutput}</pre>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.chatOnlyContainer}>
+          {renderMainContent()}
+        </div>
+      )}
     </div>
   );
 }

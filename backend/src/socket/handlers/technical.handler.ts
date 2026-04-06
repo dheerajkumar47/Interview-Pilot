@@ -1,6 +1,7 @@
 import { Socket } from "socket.io";
 import { conductTechnicalInterview } from "../../agents/technicalInterviewer";
 import { InterviewState } from "../../agents/state";
+import { updateSession } from "../../services/session.service";
 
 export const handleTechnicalStage = async (
   socket: Socket,
@@ -33,19 +34,29 @@ export const handleTechnicalStage = async (
     // Add assistant response
     sessionData.conversationHistory["technical"].push({ role: "assistant", content: response });
 
-    // Extract score if present in response (e.g., [SCORE: 85])
-    const scoreMatch = response.match(/\[SCORE:\s*(\d+)\]/i);
+    // Extract score if present in response (e.g., [SCORE: 85] or **Score:** 85)
+    const scoreMatch = response.match(/\[SCORE:\s*(\d+)\]/i) || response.match(/\*\*Score:\*\*\s*(\d+)/i) || response.match(/Score:\s*(\d+)/i);
     if (scoreMatch) {
-      const score = parseInt(scoreMatch[1]);
+      const score = Math.min(100, Math.max(0, parseInt(scoreMatch[1]))); // Clamp 0-100
       sessionData.scores.technical = score;
+      
+      // 🚀 Save immediately
+      await updateSession(data.sessionId, { scores: sessionData.scores });
       socket.emit("score:update", { sessionId: data.sessionId, stage: "technical", score });
     }
 
-    // Emit back to frontend
+    // Clean up response: remove score tags and redundant formatting
+    const cleanedResponse = response
+      .replace(/\[SCORE:\s*\d+\]/gi, "")
+      .replace(/\*\*Score:\*\*\s*\d*/gi, "")
+      .replace(/^#\s*\*/gm, "") // Remove weird "# *" prefix
+      .trim();
+
+    // 🚀 MISSING EMIT FIXED
     socket.emit("interview:response", {
       sessionId: data.sessionId,
       stage: "technical",
-      message: response.replace(/\[SCORE:\s*\d+\]/i, "").trim(),
+      message: cleanedResponse,
       timestamp: new Date().toISOString(),
     });
 

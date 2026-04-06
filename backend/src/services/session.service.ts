@@ -19,23 +19,26 @@ export async function createSession(data: Partial<InterviewState>): Promise<Inte
   }
 
   if (supabaseAdmin) {
-    try {
-      await supabaseAdmin.from('sessions').insert({
-        id,
-        user_id: data.userId || null,
-        job_title: data.jobTitle || 'Unspecified Role',
-        company_name: data.company || '',
-        job_description: data.jobDescription || '',
-        experience_required: data.experience || '',
-        role_type: data.roleType || 'developer',
-        resume_text: data.resumeText || '',
-        resume_analysis: data.resumeAnalysis || null,
-        status: 'created',
-        overall_score: 0,
-        match_score: 0,
-        session_mode: state.sessionMode || 'full',
-      });
-    } catch (e: any) { console.error('⚠️ Supabase insert error:', e.message); }
+    const { error } = await supabaseAdmin.from('sessions').insert({
+      id,
+      user_id: data.userId || null,
+      job_title: data.jobTitle || 'Unspecified Role',
+      company_name: data.company || '',
+      job_description: data.jobDescription || '',
+      experience_required: data.experience || '',
+      role_type: data.roleType || 'developer',
+      resume_text: data.resumeText || '',
+      resume_analysis: data.resumeAnalysis || null,
+      status: 'created',
+      overall_score: 0,
+      match_score: 0,
+      session_mode: state.sessionMode || 'full',
+      conversation_history: state.conversationHistory || {},
+    });
+    if (error) {
+      console.error('⚠️ Supabase insert error:', error.message);
+      throw error;
+    }
   }
 
   memorySessions.set(id, state);
@@ -60,6 +63,7 @@ export async function getSession(id: string): Promise<InterviewState | undefined
         sessionMode: (data.session_mode as any) || 'full',
         resumeText: data.resume_text,
         resumeAnalysis: data.resume_analysis,
+        conversationHistory: data.conversation_history || {},
         scores: data.scores || { resume: 0, initial: 0, technical: 0, knowledge: 0, hr: 0, overall: data.overall_score || 0 },
       });
       memorySessions.set(data.id, state);
@@ -77,17 +81,49 @@ export async function updateSession(id: string, updates: Partial<InterviewState>
   memorySessions.set(id, updated);
 
   if (supabaseAdmin) {
-    try {
-      const overallScore = updated.scores?.overall || 0;
-      const matchScore = updated.scores?.resume || 0;
-      await supabaseAdmin.from('sessions').update({
-        status: updated.currentStage,
-        overall_score: overallScore,
-        match_score: matchScore,
-        scores: updated.scores,
-        updated_at: new Date().toISOString(),
-      }).eq('id', id);
-    } catch (e: any) { console.error('⚠️ Supabase update error:', e.message); }
+    // 🧮 Merge scores to prevent zero-overwrites (Sticky Scores)
+    const existingScores = session.scores || {};
+    const updatedScores = { ...existingScores, ...(updates.scores || {}) };
+    
+    // Ensure we don't overwrite a positive score with 0 unless explicitly intended
+    Object.keys(existingScores).forEach(key => {
+      const oldScore = (existingScores as any)[key];
+      const newScore = (updatedScores as any)[key];
+      if (oldScore > 0 && (!newScore || newScore === 0)) {
+        (updatedScores as any)[key] = oldScore;
+      }
+    });
+
+    const s = updatedScores;
+    const resumeScore = s.resume || 0;
+    const initialScore = s.initial || 0;
+    const technicalScore = s.technical || 0;
+    const knowledgeScore = s.knowledge || 0;
+    const hrScore = s.hr || 0;
+
+    const weightedOverall = Math.round(
+      (resumeScore * 0.20) + 
+      (initialScore * 0.20) + 
+      (technicalScore * 0.40) + 
+      (knowledgeScore * 0.10) + 
+      (hrScore * 0.10)
+    );
+
+    const { error } = await supabaseAdmin.from('sessions').update({
+      status: updated.currentStage,
+      overall_score: weightedOverall,
+      match_score: resumeScore,
+      scores: updatedScores,
+      conversation_history: updated.conversationHistory,
+      updated_at: new Date().toISOString(),
+    }).eq('id', id);
+    if (error) {
+      console.error('⚠️ Supabase update error:', error.message);
+      throw error;
+    }
+    // Update the memory session with the calculated score and merged scores
+    updated.scores = updatedScores;
+    updated.scores.overall = weightedOverall;
   }
   return updated;
 }

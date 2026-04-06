@@ -11,7 +11,7 @@
   right: 0;
   z-index: 100;
   padding: var(--space-4) 0;
-  background: rgba(6, 6, 11, 0.8);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
@@ -97,8 +97,8 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -308,8 +308,7 @@
   left: 10%;
   right: 10%;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-500), var(--accent-300));
-  opacity: 0.2;
+  background: var(--border-subtle);
   z-index: 0;
 }
 
@@ -367,7 +366,7 @@
   position: absolute;
   inset: 0;
   background: var(--accent-gradient);
-  opacity: 0.06;
+  opacity: 0.1;
 }
 
 .cta-title {

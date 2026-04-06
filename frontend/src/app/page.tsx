@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "./page.module.css";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LandingPage() {
   return (
@@ -17,6 +18,7 @@ export default function LandingPage() {
             <li><a href="#start">Get Started</a></li>
           </ul>
           <div className={styles["nav-actions"]}>
+            <ThemeToggle />
             <Link href="/login" className="btn btn-ghost">Log In</Link>
             <Link href="/signup" className="btn btn-primary">Sign Up Free</Link>
           </div>

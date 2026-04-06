@@ -1,5 +1,13 @@
 .session {
+  display: grid;
+  place-items: center;
+  width: 100%;
   animation: slideUp 0.5s var(--ease-out);
+}
+
+.session > div {
+  width: 92%;
+  max-width: 1100px; /* Slighty wider for pipeline than report */
 }
 
 /* Header */
@@ -83,8 +91,9 @@
 .stagesGrid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-bottom: var(--space-10);
+  align-items: stretch; /* 🏗️ Force cards to take same height */
 }
 
 .stageWrapper {
@@ -110,7 +119,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 180px;
+  min-height: 220px; /* 📏 Increased for better alignment of buttons */
+  height: 100%; /* 📏 Match parent grid height */
+  justify-content: flex-start;
 }
 
 .stage-completed {
@@ -147,6 +158,7 @@
 
 .stageScore {
   margin-top: auto;
+  padding-top: var(--space-4);
 }
 
 .scoreValue {
