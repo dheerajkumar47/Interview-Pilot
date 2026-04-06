@@ -1,10 +1,13 @@
-import { callAI, AIMessage, cleanJSON } from "../../services/ai.service";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseResume = parseResume;
+exports.analyzeResume = analyzeResume;
+exports.chatWithResumeAgent = chatWithResumeAgent;
+const ai_service_1 = require("../../services/ai.service");
 // ═══════════════════════════════════════════
 // AGENT 1: RESUME ANALYST (The Gatekeeper)
 // Sub-agents: Parser + Optimizer
 // ═══════════════════════════════════════════
-
 const RESUME_PARSER_PROMPT = `You are an expert Resume Parser AI. Your job is to extract structured information from resume text.
 
 Extract and return a JSON object with these fields:
@@ -29,7 +32,6 @@ Extract and return a JSON object with these fields:
 }
 
 Be thorough and accurate. If information is not found, use null or empty arrays.`;
-
 const RESUME_OPTIMIZER_PROMPT = `You are a world-class Elite ATS Evaluator. Your goal is to provide a brutal, high-fidelity analysis of how a resume matches a Job Description. 
 
 CRITICAL: **INPUT VERIFICATION (SANITY CHECK)**:
@@ -64,71 +66,52 @@ REQUIRED JSON OUTPUT:
 }
 
 BE HONEST. If they are a bad match, tell them. If they have garbage inputs, give them a zero.`;
-
-export async function parseResume(resumeText: string): Promise<string> {
-  const response = await callAI(RESUME_PARSER_PROMPT, [
-    { role: "user", content: `Parse this resume:\n\n${resumeText}` },
-  ], { temperature: 0.2, jsonMode: true });
-  return response.content;
+async function parseResume(resumeText) {
+    const response = await (0, ai_service_1.callAI)(RESUME_PARSER_PROMPT, [
+        { role: "user", content: `Parse this resume:\n\n${resumeText}` },
+    ], { temperature: 0.2, jsonMode: true });
+    return response.content;
 }
-
-export async function analyzeResume(
-  resumeText: string,
-  jobDescription: string,
-  parsedResume: string
-): Promise<string> {
-  // 🛡️ CODE-LEVEL SANITY CHECK (HARD GUARD)
-  const jdWords = jobDescription.trim().split(/\s+/).length;
-  const resumeWords = resumeText.trim().split(/\s+/).length;
-  const isJunk = (jdWords < 5) || 
-                 (jobDescription.toLowerCase().includes("hi") && jdWords < 3) || 
-                 (jobDescription.toLowerCase() === "test") ||
-                 (resumeWords < 20);
-
-  if (isJunk) {
-    console.log("🚫 [ATS GUARD] Junk input detected. Forcing 0% score.");
-    return JSON.stringify({
-      matchScore: 0,
-      atsScore: 0,
-      shortlistStatus: "not_shortlisted",
-      keywordMatches: [],
-      missingKeywords: ["Professional JD Required", "Professional Resume Required"],
-      strengths: [],
-      gaps: [{ category: "Validation", description: "The provided Job Description or Resume is too short or contains placeholder text.", severity: "high" }],
-      suggestions: [{ type: "formatting", description: "Please provide a complete Job Description and a professional Resume for a valid analysis.", priority: "high" }],
-      overallFeedback: "Analysis Failed: The input data provided is insufficient for a professional ATS evaluation. Please paste a full Job Description and ensure your resume is correctly uploaded."
-    });
-  }
-
-  const response = await callAI(
-    RESUME_OPTIMIZER_PROMPT,
-    [
-      { role: "user", content: `RESUME TEXT:\n${resumeText}\n\nPARSED DATA:\n${parsedResume}\n\nJOB DESCRIPTION:\n${jobDescription}` }
-    ],
-    { temperature: 0.1, jsonMode: true }
-  );
-  
-  // 🛡️ POST-AI SANITY CHECK (Double Guard)
-  try {
-    const data = JSON.parse(cleanJSON(response.content));
-    if (data.matchScore > 10 && (jdWords < 12)) {
-       console.log("🚫 [ATS GUARD] AI Over-hallucinated. Overriding high score for short JD.");
-       data.matchScore = 5; 
-       data.shortlistStatus = "not_shortlisted";
-       return JSON.stringify(data);
+async function analyzeResume(resumeText, jobDescription, parsedResume) {
+    // 🛡️ CODE-LEVEL SANITY CHECK (HARD GUARD)
+    const jdWords = jobDescription.trim().split(/\s+/).length;
+    const resumeWords = resumeText.trim().split(/\s+/).length;
+    const isJunk = (jdWords < 5) ||
+        (jobDescription.toLowerCase().includes("hi") && jdWords < 3) ||
+        (jobDescription.toLowerCase() === "test") ||
+        (resumeWords < 20);
+    if (isJunk) {
+        console.log("🚫 [ATS GUARD] Junk input detected. Forcing 0% score.");
+        return JSON.stringify({
+            matchScore: 0,
+            atsScore: 0,
+            shortlistStatus: "not_shortlisted",
+            keywordMatches: [],
+            missingKeywords: ["Professional JD Required", "Professional Resume Required"],
+            strengths: [],
+            gaps: [{ category: "Validation", description: "The provided Job Description or Resume is too short or contains placeholder text.", severity: "high" }],
+            suggestions: [{ type: "formatting", description: "Please provide a complete Job Description and a professional Resume for a valid analysis.", priority: "high" }],
+            overallFeedback: "Analysis Failed: The input data provided is insufficient for a professional ATS evaluation. Please paste a full Job Description and ensure your resume is correctly uploaded."
+        });
     }
-  } catch (e) {}
-
-  return response.content;
+    const response = await (0, ai_service_1.callAI)(RESUME_OPTIMIZER_PROMPT, [
+        { role: "user", content: `RESUME TEXT:\n${resumeText}\n\nPARSED DATA:\n${parsedResume}\n\nJOB DESCRIPTION:\n${jobDescription}` }
+    ], { temperature: 0.1, jsonMode: true });
+    // 🛡️ POST-AI SANITY CHECK (Double Guard)
+    try {
+        const data = JSON.parse((0, ai_service_1.cleanJSON)(response.content));
+        if (data.matchScore > 10 && (jdWords < 12)) {
+            console.log("🚫 [ATS GUARD] AI Over-hallucinated. Overriding high score for short JD.");
+            data.matchScore = 5;
+            data.shortlistStatus = "not_shortlisted";
+            return JSON.stringify(data);
+        }
+    }
+    catch (e) { }
+    return response.content;
 }
-
-export async function chatWithResumeAgent(
-  messages: AIMessage[],
-  resumeText: string,
-  jobDescription: string,
-  analysis: string
-): Promise<string> {
-  const systemPrompt = `You are the Resume Analyst agent in InterviewPilot. You have already analyzed the candidate's resume.
+async function chatWithResumeAgent(messages, resumeText, jobDescription, analysis) {
+    const systemPrompt = `You are the Resume Analyst agent in InterviewPilot. You have already analyzed the candidate's resume.
 
 RESUME: ${resumeText.substring(0, 2000)}
 
@@ -139,7 +122,7 @@ ANALYSIS: ${analysis.substring(0, 2000)}
 Help the candidate understand their resume score, gaps, and how to improve. Be encouraging but honest.
 Provide specific, actionable advice. If they ask about specific sections, give detailed guidance.
 IMPORTANT: You are only the Resume Analyst. DO NOT ask technical interview questions, coding challenges, or system design questions. Those will come in later stages. Focus ONLY on the resume content, score, and career alignment.`;
-
-  const response = await callAI(systemPrompt, messages, { temperature: 0.6 });
-  return response.content;
+    const response = await (0, ai_service_1.callAI)(systemPrompt, messages, { temperature: 0.6 });
+    return response.content;
 }
+//# sourceMappingURL=index.js.map

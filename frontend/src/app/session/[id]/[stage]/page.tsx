@@ -61,6 +61,7 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
   const [isAutoVoice, setIsAutoVoice] = useState(false);
   const [isCodingQuestion, setIsCodingQuestion] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [sessionMode, setSessionMode] = useState<string>("full");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -119,8 +120,10 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
         if (!supabase) return;
         const { data: session } = await supabase.from('sessions').select('*').eq('id', id).single();
         if (session) {
-          const dbScores = session.scores || {};
-          const isFinished = dbScores[stage] !== undefined && dbScores[stage] !== null;
+          setSessionMode(session.session_mode || "full");
+          
+          // 🛡️ REFINED REVIEW MODE: Only trigger if the OVERALL session is completed or status is final
+          const isFinished = session.status === 'completed' || session.status === 'finished';
           
           if (isFinished) {
             setIsReviewMode(true);
@@ -131,11 +134,10 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
                 id: `hist-${idx}`,
                 role: m.role === 'user' ? 'user' : 'ai',
                 content: m.content,
-                timestamp: new Date() // Best effort
+                timestamp: new Date()
               }));
               setMessages(formattedMsgs);
 
-              // 🔍 Detect if this was a coding session from history
               const hasCoding = history.some((m: any) => 
                 ["coding", "function", "write a", "implement", "solution", "```"].some(kw => 
                   m.content.toLowerCase().includes(kw)
@@ -146,10 +148,14 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
           } else {
              // Normal Greeting
              if (messages.length === 0) {
+               const customGreeting = (stage === 'technical' && session.session_mode === 'technical_only')
+                 ? "Welcome to your Personalized Technical Practice! I'm your Practice Mentor. Let's start with a few onboarding questions to tailor your session. What role are we preparing for?"
+                 : GREETINGS[stage] || GREETINGS.technical;
+
                setMessages([{
                  id: "greeting",
                  role: "ai",
-                 content: GREETINGS[stage] || GREETINGS.technical,
+                 content: customGreeting,
                  timestamp: new Date(),
                  agentType: stage,
                }]);
@@ -423,14 +429,18 @@ export default function InterviewRoom({ params }: { params: Promise<{ id: string
     <div className={styles.room}>
       <div className={styles.roomHeader}>
         <div className={styles.agentInfo}>
-          <div className={styles.agentAvatar} style={{ background: config.color }}>{config.icon}</div>
+          <div className={styles.agentAvatar} style={{ background: (stage === 'technical' && sessionMode === 'technical_only') ? '#8b5cf6' : config.color }}>
+            {(stage === 'technical' && sessionMode === 'technical_only') ? '🎓' : config.icon}
+          </div>
           <div>
-            <h2 className={styles.agentName}>{config.name}</h2>
+            <h2 className={styles.agentName}>
+              {(stage === 'technical' && sessionMode === 'technical_only') ? "Technical Practice Mentor" : config.name}
+            </h2>
             <p className={styles.agentStatus}>
               {isReviewMode ? (
-                <span style={{ color: 'var(--info)', fontWeight: 700 }}>📄 Review Mode (Read-Only)</span>
+                <span style={{ color: 'var(--info)', fontWeight: 700 }}>📄 Session Report (Read-Only)</span>
               ) : (
-                `Online • Phase ${currentIndex + 1}/5`
+                `Online • ${(stage === 'technical' && sessionMode === 'technical_only') ? "Onboarding Phase" : `Phase ${currentIndex + 1}/5`}`
               )}
             </p>
           </div>

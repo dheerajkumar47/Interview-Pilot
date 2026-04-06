@@ -1,5 +1,6 @@
 import { Socket } from "socket.io";
-import { conductTechnicalInterview, conductDiscovery } from "../../agents/technicalInterviewer";
+import { conductTechnicalInterview, conductDiscovery as interviewerDiscovery } from "../../agents/technicalInterviewer";
+import { conductPracticeSession, conductPracticeDiscovery } from "../../agents/practiceMentor";
 import { InterviewState } from "../../agents/state";
 import { updateSession } from "../../services/session.service";
 
@@ -8,7 +9,7 @@ export const handleTechnicalStage = async (
   data: { sessionId: string; message: string },
   sessionData: InterviewState
 ) => {
-  console.log(`💻 [TECHNICAL HANDLER] Processing message for session: ${data.sessionId}`);
+  console.log(`💻 [TECHNICAL HANDLER] Processing message for session: ${data.sessionId} [Mode: ${sessionData.sessionMode}]`);
 
   try {
     if (!sessionData.conversationHistory["technical"]) {
@@ -18,29 +19,36 @@ export const handleTechnicalStage = async (
     // Add user message
     sessionData.conversationHistory["technical"].push({ role: "user", content: data.message });
 
-    // 🔍 Discovery Phase Logic for 'technical_only' sessions
     const history = sessionData.conversationHistory["technical"] as any;
     const isTechnicalOnly = sessionData.sessionMode === "technical_only";
     
-    let isDiscovery = false;
-    if (isTechnicalOnly) {
-      // Logic for Onboarding
-      const hasFinishedOnboarding = history.some((m: any) => 
-        m.role === "assistant" && m.content.toLowerCase().includes("ready?")
-      );
-      
-      // If history has 1 or fewer assistant messages, definitely in discovery
-      const assistantMsgs = history.filter((m: any) => m.role === "assistant").length;
-      if (!hasFinishedOnboarding || assistantMsgs < 4) {
-        isDiscovery = true;
-      }
-    }
+    // 🔍 Discovery Detection Logic (Enhanced)
+    const assistantMsgs = history.filter((m: any) => m.role === "assistant");
+    const hasFinishedOnboarding = assistantMsgs.some((m: any) => 
+      m.content.toLowerCase().includes("ready?") || m.content.toLowerCase().includes("let's start")
+    );
+    
+    // We stay in discovery if they haven't finished onboarding OR we're still collecting the 4-5 baseline questions
+    const isDiscovery = isTechnicalOnly && (!hasFinishedOnboarding || assistantMsgs.length < 4);
 
     let response: string;
     if (isDiscovery) {
-      response = await conductDiscovery(history);
+      // 🚀 Practice Discovery (From dedicated agent)
+      response = await conductPracticeDiscovery(history);
+    } else if (isTechnicalOnly) {
+      // 🚀 Practice Session (Coaching/Mentoring)
+      response = await conductPracticeSession(
+        history,
+        {
+          jobTitle: sessionData.jobTitle || "Professional Role",
+          jobDescription: sessionData.jobDescription || "",
+          experience: sessionData.experience || "Not specified",
+          skills: (sessionData.resumeAnalysis as any)?.keywordMatches || [],
+          candidateLevel: sessionData.candidateLevel || "beginner"
+        }
+      );
     } else {
-      // Normal Interview
+      // 🚀 Normal Mock Interview (Traditional Interviewer)
       response = await conductTechnicalInterview(
         history,
         {
