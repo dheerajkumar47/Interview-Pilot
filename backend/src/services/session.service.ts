@@ -19,25 +19,29 @@ export async function createSession(data: Partial<InterviewState>): Promise<Inte
   }
 
   if (supabaseAdmin) {
-    const { error } = await supabaseAdmin.from('sessions').insert({
-      id,
-      user_id: data.userId || null,
-      job_title: data.jobTitle || 'Unspecified Role',
-      company_name: data.company || '',
-      job_description: data.jobDescription || '',
-      experience_required: data.experience || '',
-      role_type: data.roleType || 'developer',
-      resume_text: data.resumeText || '',
-      resume_analysis: data.resumeAnalysis || null,
-      status: 'created',
-      overall_score: 0,
-      match_score: 0,
-      session_mode: state.sessionMode || 'full',
-      conversation_history: state.conversationHistory || {},
-    });
-    if (error) {
-      console.error('⚠️ Supabase insert error:', error.message);
-      throw error;
+    try {
+      const { error } = await supabaseAdmin.from('sessions').insert({
+        id,
+        user_id: data.userId || null,
+        job_title: data.jobTitle || 'Unspecified Role',
+        company_name: data.company || '',
+        job_description: data.jobDescription || '',
+        experience_required: data.experience || '',
+        role_type: data.roleType || 'developer',
+        resume_text: data.resumeText || '',
+        resume_analysis: data.resumeAnalysis || null,
+        status: 'created',
+        overall_score: 0,
+        match_score: 0,
+        session_mode: state.sessionMode || 'full',
+        conversation_history: state.conversationHistory || {},
+      });
+      if (error) {
+        console.error('⚠️ Supabase insert error:', error.message);
+        // We do NOT throw here anymore, allowing mock sessions to proceed
+      }
+    } catch (dbError: any) {
+      console.error('❌ Database failure in createSession:', dbError.message);
     }
   }
 
