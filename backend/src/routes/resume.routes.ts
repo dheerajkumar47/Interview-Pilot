@@ -58,25 +58,32 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
       analysis = typeof analysisRaw === 'string' ? JSON.parse(cleanJSON(analysisRaw)) : analysisRaw;
     }
 
-    // 4. Create real Session in DB (Wrap in try-catch to be resilient)
+    // 4. Create real Session in DB (ONLY IF VALID ANALYSIS)
     let sessionId = "temp-" + Date.now();
-    try {
-      const session = await createSession({
-        userId: userId || null,
-        jobTitle: jobTitle || "Software Engineer",
-        company: company || "Unknown",
-        jobDescription: jobDescription || "",
-        experience: experience || "0-3 years",
-        roleType: roleType || "developer",
-        candidateLevel: candidateLevel || "beginner",
-        resumeText: resumeText,
-        resumeAnalysis: analysis,
-        sessionMode: sessionMode || "full",
-        currentStage: "resume",
-      });
-      sessionId = session.sessionId;
-    } catch (err: any) {
-      console.error("⚠️ Resilient Mode: Session creation failed, but returning analysis.", err.message);
+    
+    const isRealScan = analysis && analysis.matchScore > 0;
+
+    if (isRealScan) {
+      try {
+        const session = await createSession({
+          userId: userId || null,
+          jobTitle: jobTitle || "Software Engineer",
+          company: company || "Unknown",
+          jobDescription: jobDescription || "",
+          experience: experience || "0-3 years",
+          roleType: roleType || "developer",
+          candidateLevel: candidateLevel || "beginner",
+          resumeText: resumeText,
+          resumeAnalysis: analysis,
+          sessionMode: sessionMode || "full",
+          currentStage: "resume",
+        });
+        sessionId = session.sessionId;
+      } catch (err: any) {
+        console.error("⚠️ Resilient Mode: Session creation failed, but returning analysis.", err.message);
+      }
+    } else {
+      console.log("🚫 [RESUME ROUTE] Junk input detected. Skipping DB session creation.");
     }
 
     res.json({
