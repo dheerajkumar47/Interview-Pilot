@@ -74,7 +74,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className={styles.breadcrumbItem}>InterviewPilot</span>
             <span className={styles.breadcrumbSep}>/</span>
             <span className={styles.breadcrumbCurrent}>
-              {navItems.find(i => i.href === pathname)?.label || "Session"}
+              {pathname === "/session/resume-scan" ? "Resume Optimizer" :
+               pathname === "/session/technical-practice" ? "Technical Practice" :
+               pathname.includes("/report") ? "Interview Report" :
+               navItems.find(i => i.href === pathname)?.label || "Session"}
             </span>
           </div>
           <div className={styles.topBarActions}>
