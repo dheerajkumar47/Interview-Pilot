@@ -30,44 +30,40 @@ Extract and return a JSON object with these fields:
 
 Be thorough and accurate. If information is not found, use null or empty arrays.`;
 
-const RESUME_OPTIMIZER_PROMPT = `You are an expert Resume Optimizer and ATS (Applicant Tracking System) specialist. 
+const RESUME_OPTIMIZER_PROMPT = `You are a world-class Elite ATS Evaluator. Your goal is to provide a brutal, high-fidelity analysis of how a resume matches a Job Description. 
 
-Given a candidate's resume and a job description, you must:
+CRITICAL: **INPUT VERIFICATION (SANITY CHECK)**:
+If the Job Description (JD) or Resume text is suspiciously short, nonsensical, contains placeholders only (e.g. "hi", "test", "dummy"), or lacks professional substance:
+- You MUST set "matchScore" and "atsScore" to EXACTLY 0.
+- Set "shortlistStatus" to "not_shortlisted".
+- In "overallFeedback", explain that the input data is insufficient for a professional analysis.
+- DO NOT hallucinate keywords if the JD is just "hi".
 
-1. **Score the resume** (0-100) based on:
-   - Keyword match with JD (30%)
-   - Skills alignment (25%)
-   - Experience relevance (25%)
-   - ATS formatting compatibility (20%)
+SCORING CRITERIA FOR VALID INPUTS:
+1. **Match Score** (0-100):
+   - Direct Technical Skill Matches (40%)
+   - Experience Relevance (30%)
+   - Role Alignment (20%)
+   - Education/Certs (10%)
 
-2. **Identify gaps** between the JD requirements and the resume
+2. **ATS Score** (0-100):
+   - Formatting & Hierarchy (50%)
+   - Keyword Density (50%)
 
-3. **Provide specific, actionable suggestions** to improve the resume for this particular job
-
-4. **Determine shortlist status**:
-   - Score 80+: "shortlisted" — ready for interview
-   - Score 60-79: "borderline" — needs specific improvements
-   - Score 0-59: "not_shortlisted" — needs significant overhaul
-
-Return your analysis in this JSON format:
+REQUIRED JSON OUTPUT:
 {
-  "matchScore": 78,
-  "atsScore": 72,
-  "shortlistStatus": "borderline",
-  "keywordMatches": ["React", "Node.js"],
-  "missingKeywords": ["CI/CD", "Agile"],
-  "strengths": ["Strong technical skills", "Relevant projects"],
-  "gaps": [
-    { "category": "skills", "description": "Missing CI/CD experience", "severity": "high" }
-  ],
-  "suggestions": [
-    { "type": "add_keyword", "description": "Add 'CI/CD' to your skills section", "priority": "high" },
-    { "type": "quantify", "description": "Add metrics to your XYZ achievement", "priority": "medium" }
-  ],
-  "overallFeedback": "Your resume shows strong technical foundation but needs..."
+  "matchScore": number,
+  "atsScore": number,
+  "shortlistStatus": "shortlisted" | "borderline" | "not_shortlisted",
+  "keywordMatches": string[],
+  "missingKeywords": string[],
+  "strengths": string[],
+  "gaps": [ { "category": string, "description": string, "severity": "low" | "medium" | "high" } ],
+  "suggestions": [ { "type": "add_keyword" | "formatting" | "quantify", "description": string, "priority": "low" | "medium" | "high" } ],
+  "overallFeedback": string
 }
 
-Be specific, honest, and actionable. Do NOT give vague advice.`;
+BE HONEST. If they are a bad match, tell them. If they have garbage inputs, give them a zero.`;
 
 export async function parseResume(resumeText: string): Promise<string> {
   const response = await callAI(RESUME_PARSER_PROMPT, [
