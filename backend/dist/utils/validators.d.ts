@@ -10,13 +10,13 @@ export declare const createSessionSchema: z.ZodObject<{
     jobTitle: string;
     company?: string | undefined;
     experience?: string | undefined;
-    roleType?: "developer" | "data" | "tester" | "devops" | "design" | "other" | undefined;
+    roleType?: "data" | "developer" | "tester" | "devops" | "design" | "other" | undefined;
 }, {
     jobDescription: string;
     jobTitle: string;
     company?: string | undefined;
     experience?: string | undefined;
-    roleType?: "developer" | "data" | "tester" | "devops" | "design" | "other" | undefined;
+    roleType?: "data" | "developer" | "tester" | "devops" | "design" | "other" | undefined;
 }>;
 export declare const chatMessageSchema: z.ZodObject<{
     stage: z.ZodEnum<["resume", "initial", "technical", "knowledge", "hr"]>;

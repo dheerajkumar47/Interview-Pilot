@@ -13,15 +13,17 @@ const memorySessions = new Map();
 async function createSession(data) {
     const id = data.sessionId || (0, crypto_1.randomUUID)();
     const state = (0, state_1.createInitialState)({ sessionId: id, ...data });
-    if (supabase_1.supabaseAdmin && data.userId) {
-        try {
-            await supabase_1.supabaseAdmin.from('profiles').upsert({ id: data.userId, full_name: 'User' }, { onConflict: 'id' });
+    // 🛡️ [EPHEMERAL POD] Skip DB insert for Practice/Resume-Only modes
+    const isEphemeral = state.sessionMode === 'technical_only' || state.sessionMode === 'resume_only';
+    if (supabase_1.supabaseAdmin && !isEphemeral) {
+        if (data.userId) {
+            try {
+                await supabase_1.supabaseAdmin.from('profiles').upsert({ id: data.userId, full_name: 'User' }, { onConflict: 'id' });
+            }
+            catch (e) {
+                console.error('⚠️ Profile upsert:', e.message);
+            }
         }
-        catch (e) {
-            console.error('⚠️ Profile upsert:', e.message);
-        }
-    }
-    if (supabase_1.supabaseAdmin) {
         try {
             const { error } = await supabase_1.supabaseAdmin.from('sessions').insert({
                 id,
@@ -41,12 +43,14 @@ async function createSession(data) {
             });
             if (error) {
                 console.error('⚠️ Supabase insert error:', error.message);
-                // We do NOT throw here anymore, allowing mock sessions to proceed
             }
         }
         catch (dbError) {
             console.error('❌ Database failure in createSession:', dbError.message);
         }
+    }
+    else if (isEphemeral) {
+        console.log(`🛡️ [SESSION SERVICE] Ephemeral Mode Enabled (${state.sessionMode}). Skipping DB persistence.`);
     }
     memorySessions.set(id, state);
     return state;
@@ -84,7 +88,8 @@ async function updateSession(id, updates) {
         return undefined;
     const updated = { ...session, ...updates };
     memorySessions.set(id, updated);
-    if (supabase_1.supabaseAdmin) {
+    const isEphemeral = session.sessionMode === 'technical_only' || session.sessionMode === 'resume_only';
+    if (supabase_1.supabaseAdmin && !isEphemeral) {
         // 🧮 Merge scores to prevent zero-overwrites (Sticky Scores)
         const existingScores = session.scores || {};
         const updatedScores = { ...existingScores, ...(updates.scores || {}) };

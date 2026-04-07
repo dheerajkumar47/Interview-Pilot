@@ -31,7 +31,14 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false });
         
         if (!error && data) {
-          setSessions(data);
+          // 🛡️ Filter out junk and practice sessions
+          const filtered = data.filter((s: any) => 
+            s.session_mode !== 'technical_only' && 
+            s.session_mode !== 'resume_only' &&
+            s.job_title !== 'Technical Practice' &&
+            s.job_title !== 'Practice Simulation'
+          );
+          setSessions(filtered);
         }
         setLoading(false);
       };

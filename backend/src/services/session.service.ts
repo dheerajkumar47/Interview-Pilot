@@ -9,16 +9,19 @@ export async function createSession(data: Partial<InterviewState>): Promise<Inte
   const id = data.sessionId || randomUUID();
   const state = createInitialState({ sessionId: id, ...data });
 
-  if (supabaseAdmin && data.userId) {
-    try {
-      await supabaseAdmin.from('profiles').upsert(
-        { id: data.userId, full_name: 'User' },
-        { onConflict: 'id' }
-      );
-    } catch (e: any) { console.error('⚠️ Profile upsert:', e.message); }
-  }
+  // 🛡️ [EPHEMERAL POD] Skip DB insert for Practice/Resume-Only modes
+  const isEphemeral = state.sessionMode === 'technical_only' || state.sessionMode === 'resume_only';
 
-  if (supabaseAdmin) {
+  if (supabaseAdmin && !isEphemeral) {
+    if (data.userId) {
+      try {
+        await supabaseAdmin.from('profiles').upsert(
+          { id: data.userId, full_name: 'User' },
+          { onConflict: 'id' }
+        );
+      } catch (e: any) { console.error('⚠️ Profile upsert:', e.message); }
+    }
+
     try {
       const { error } = await supabaseAdmin.from('sessions').insert({
         id,
@@ -38,11 +41,12 @@ export async function createSession(data: Partial<InterviewState>): Promise<Inte
       });
       if (error) {
         console.error('⚠️ Supabase insert error:', error.message);
-        // We do NOT throw here anymore, allowing mock sessions to proceed
       }
     } catch (dbError: any) {
       console.error('❌ Database failure in createSession:', dbError.message);
     }
+  } else if (isEphemeral) {
+    console.log(`🛡️ [SESSION SERVICE] Ephemeral Mode Enabled (${state.sessionMode}). Skipping DB persistence.`);
   }
 
   memorySessions.set(id, state);
@@ -84,7 +88,9 @@ export async function updateSession(id: string, updates: Partial<InterviewState>
   const updated = { ...session, ...updates };
   memorySessions.set(id, updated);
 
-  if (supabaseAdmin) {
+  const isEphemeral = session.sessionMode === 'technical_only' || session.sessionMode === 'resume_only';
+
+  if (supabaseAdmin && !isEphemeral) {
     // 🧮 Merge scores to prevent zero-overwrites (Sticky Scores)
     const existingScores = session.scores || {};
     const updatedScores = { ...existingScores, ...(updates.scores || {}) };

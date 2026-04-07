@@ -46,26 +46,32 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
             const analysisRaw = await (0, resumeAnalyst_1.analyzeResume)(resumeText, jobDescription, JSON.stringify(parsedResume));
             analysis = typeof analysisRaw === 'string' ? JSON.parse((0, ai_service_1.cleanJSON)(analysisRaw)) : analysisRaw;
         }
-        // 4. Create real Session in DB (Wrap in try-catch to be resilient)
+        // 4. Create real Session in DB (ONLY IF VALID ANALYSIS)
         let sessionId = "temp-" + Date.now();
-        try {
-            const session = await (0, session_service_1.createSession)({
-                userId: userId || null,
-                jobTitle: jobTitle || "Software Engineer",
-                company: company || "Unknown",
-                jobDescription: jobDescription || "",
-                experience: experience || "0-3 years",
-                roleType: roleType || "developer",
-                candidateLevel: candidateLevel || "beginner",
-                resumeText: resumeText,
-                resumeAnalysis: analysis,
-                sessionMode: sessionMode || "full",
-                currentStage: "resume",
-            });
-            sessionId = session.sessionId;
+        const isRealScan = analysis && analysis.matchScore > 0;
+        if (isRealScan) {
+            try {
+                const session = await (0, session_service_1.createSession)({
+                    userId: userId || null,
+                    jobTitle: jobTitle || "Software Engineer",
+                    company: company || "Unknown",
+                    jobDescription: jobDescription || "",
+                    experience: experience || "0-3 years",
+                    roleType: roleType || "developer",
+                    candidateLevel: candidateLevel || "beginner",
+                    resumeText: resumeText,
+                    resumeAnalysis: analysis,
+                    sessionMode: sessionMode || "full",
+                    currentStage: "resume",
+                });
+                sessionId = session.sessionId;
+            }
+            catch (err) {
+                console.error("⚠️ Resilient Mode: Session creation failed, but returning analysis.", err.message);
+            }
         }
-        catch (err) {
-            console.error("⚠️ Resilient Mode: Session creation failed, but returning analysis.", err.message);
+        else {
+            console.log("🚫 [RESUME ROUTE] Junk input detected. Skipping DB session creation.");
         }
         res.json({
             success: true,
