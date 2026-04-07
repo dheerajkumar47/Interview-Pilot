@@ -31,13 +31,26 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false });
         
         if (!error && data) {
-          // 🛡️ Filter out junk and practice sessions
-          const filtered = data.filter((s: any) => 
-            s.session_mode !== 'technical_only' && 
-            s.session_mode !== 'resume_only' &&
-            s.job_title !== 'Technical Practice' &&
-            s.job_title !== 'Practice Simulation'
-          );
+          // 🛡️ [AGGRESSIVE] Filter out all practice, residual, and junk sessions
+          const filtered = data.filter((s: any) => {
+            const title = (s.job_title || "").toLowerCase();
+            const company = (s.company_name || "").toLowerCase();
+            const mode = (s.session_mode || "").toLowerCase();
+            
+            // Skip if it matches any practice indicators
+            const isPractice = 
+              mode === 'technical_only' || 
+              mode === 'resume_only' ||
+              title.includes('practice') ||
+              company.includes('practice') ||
+              title.includes('simulation') ||
+              company.includes('simulation');
+
+            // Also skip junk with 0% overall and 0% match
+            const isJunk = (s.overall_score === 0 && s.match_score === 0 && s.status === 'created');
+
+            return !isPractice && !isJunk;
+          });
           setSessions(filtered);
         }
         setLoading(false);
