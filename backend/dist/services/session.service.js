@@ -58,6 +58,10 @@ async function createSession(data) {
 async function getSession(id) {
     if (memorySessions.has(id))
         return memorySessions.get(id);
+    // 🛡️ [GUARD] Avoid "invalid input syntax for type uuid" for temporary/practice sessions
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid)
+        return undefined;
     if (supabase_1.supabaseAdmin) {
         const { data } = await supabase_1.supabaseAdmin.from('sessions').select('*').eq('id', id).single();
         if (data) {

@@ -4,6 +4,7 @@ import { parseResume, analyzeResume } from "../agents/resumeAnalyst";
 import { extractResumeText } from "../services/resume.service";
 import { createSession } from "../services/session.service";
 import { cleanJSON } from "../services/ai.service";
+import { randomUUID } from "crypto";
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
     }
 
     // 4. Create real Session in DB (ONLY IF VALID ANALYSIS)
-    let sessionId = "temp-" + Date.now();
+    let sessionId: string = randomUUID();
     
     const isRealScan = analysis && analysis.matchScore > 0;
 

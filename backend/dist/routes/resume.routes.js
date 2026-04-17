@@ -9,6 +9,7 @@ const resumeAnalyst_1 = require("../agents/resumeAnalyst");
 const resume_service_1 = require("../services/resume.service");
 const session_service_1 = require("../services/session.service");
 const ai_service_1 = require("../services/ai.service");
+const crypto_1 = require("crypto");
 const router = (0, express_1.Router)();
 // Configure multer for file uploads
 const upload = (0, multer_1.default)({
@@ -47,7 +48,7 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
             analysis = typeof analysisRaw === 'string' ? JSON.parse((0, ai_service_1.cleanJSON)(analysisRaw)) : analysisRaw;
         }
         // 4. Create real Session in DB (ONLY IF VALID ANALYSIS)
-        let sessionId = "temp-" + Date.now();
+        let sessionId = (0, crypto_1.randomUUID)();
         const isRealScan = analysis && analysis.matchScore > 0;
         if (isRealScan) {
             try {
