@@ -32,5 +32,16 @@ router.put("/:id", async (req, res) => {
         return res.status(404).json({ error: "Session not found" });
     res.json({ success: true, session });
 });
+// Delete session
+router.delete("/:id", async (req, res) => {
+    try {
+        const { deleteSession } = require("../services/session.service");
+        await deleteSession(req.params.id);
+        res.json({ success: true, message: "Session deleted successfully" });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=session.routes.js.map

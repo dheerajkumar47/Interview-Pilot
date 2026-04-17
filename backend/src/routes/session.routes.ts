@@ -33,4 +33,15 @@ router.put("/:id", async (req, res) => {
   res.json({ success: true, session });
 });
 
+// Delete session
+router.delete("/:id", async (req, res) => {
+  try {
+    const { deleteSession } = require("../services/session.service");
+    await deleteSession(req.params.id);
+    res.json({ success: true, message: "Session deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

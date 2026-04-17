@@ -45,18 +45,25 @@ export default function SessionsPage() {
     if (!confirm("Delete this session? This cannot be undone.")) return;
     setDeleting(sessionId);
     
-    // Use socket to delete (syncs backend memory + DB)
-    const socket = getSocket();
-    if (socket) {
-      socket.emit("session:delete", { sessionId });
-      socket.once("session:deleted", () => {
-        setSessions(prev => prev.filter(s => s.id !== sessionId));
-        setDeleting(null);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-    } else {
-      // Fallback: direct supabase delete
-      if (supabase) await supabase.from('sessions').delete().eq('id', sessionId);
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+
+      if (response.ok) {
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      } else {
+        const err = await response.json();
+        console.error('❌ Deletion failed:', err.error);
+        alert("Failed to delete session: " + (err.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error('❌ Deletion error:', error);
+      alert("Error connecting to server. Please try again.");
+    } finally {
       setDeleting(null);
     }
   };
